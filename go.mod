@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/charmbracelet/colorprofile v0.3.1
-	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.2
+	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1
 	github.com/charmbracelet/x/ansi v0.8.0
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444
 	github.com/charmbracelet/x/exp/golden v0.0.0-20240806155701-69247e0abc2a
