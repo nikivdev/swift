@@ -1,0 +1,11 @@
+
+  Generates manpages                         
+         
+  USAGE  
+         
+    simple man [--flags]  
+         
+  FLAGS  
+         
+    -h --help  Help for man
+

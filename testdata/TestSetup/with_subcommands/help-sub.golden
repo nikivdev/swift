@@ -1,0 +1,19 @@
+
+  a sub command                              
+         
+  USAGE  
+         
+    simple sub1 [--flags]  
+            
+  EXAMPLES  
+            
+    simple sub1 some args  
+            
+  COMMANDS  
+            
+    sub2 [args]  Yet another sub command
+         
+  FLAGS  
+         
+    -h --help    Help for sub1
+
