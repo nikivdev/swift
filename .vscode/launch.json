@@ -1,0 +1,22 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift}/cli/flow",
+      "name": "Debug flow (cli/flow)",
+      "program": "${workspaceFolder:swift}/cli/flow/.build/debug/flow",
+      "preLaunchTask": "swift: Build Debug flow (cli/flow)"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:swift}/cli/flow",
+      "name": "Release flow (cli/flow)",
+      "program": "${workspaceFolder:swift}/cli/flow/.build/release/flow",
+      "preLaunchTask": "swift: Build Release flow (cli/flow)"
+    }
+  ]
+}
