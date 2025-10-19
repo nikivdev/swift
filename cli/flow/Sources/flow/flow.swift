@@ -6,7 +6,8 @@ struct Flow: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "flow",
         abstract: "Author and run lightweight step-based flows stored as JSON.",
-        discussion: "Use `flow init` to scaffold a new flow definition and `flow run` to walk through its steps.",
+        discussion:
+            "Use `flow init` to scaffold a new flow definition and `flow run` to walk through its steps.",
         version: "1.0.0",
         subcommands: [Init.self, Run.self, Show.self],
         defaultSubcommand: Show.self
@@ -31,11 +32,15 @@ private struct FlowDefinition: Codable {
     }
 }
 
-private extension FlowDefinition {
-    static func load(from path: String) throws -> FlowDefinition {
-        let url = URL(fileURLWithPath: path, relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
+extension FlowDefinition {
+    fileprivate static func load(from path: String) throws -> FlowDefinition {
+        let url = URL(
+            fileURLWithPath: path,
+            relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
         guard FileManager.default.fileExists(atPath: url.path) else {
-            throw ValidationError("No flow definition found at \(url.path). Run `flow init` first or point to an existing file with --file.")
+            throw ValidationError(
+                "No flow definition found at \(url.path). Run `flow init` first or point to an existing file with --file."
+            )
         }
 
         let data = try Data(contentsOf: url)
@@ -44,12 +49,15 @@ private extension FlowDefinition {
         return try decoder.decode(FlowDefinition.self, from: data)
     }
 
-    func save(to path: String, overwriting: Bool) throws {
-        let url = URL(fileURLWithPath: path, relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
+    fileprivate func save(to path: String, overwriting: Bool) throws {
+        let url = URL(
+            fileURLWithPath: path,
+            relativeTo: URL(fileURLWithPath: FileManager.default.currentDirectoryPath))
         let fm = FileManager.default
 
         if fm.fileExists(atPath: url.path) && !overwriting {
-            throw ValidationError("A flow definition already exists at \(url.path). Use --force to overwrite it.")
+            throw ValidationError(
+                "A flow definition already exists at \(url.path). Use --force to overwrite it.")
         }
 
         let encoder = JSONEncoder()
@@ -62,15 +70,17 @@ private extension FlowDefinition {
 
 extension Flow {
     struct Init: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Scaffold a new flow JSON file in the current directory.")
+        static let configuration = CommandConfiguration(
+            abstract: "Scaffold a new flow JSON file in the current directory.")
 
-        @Option(name: .shortAndLong, help: "Friendly name for the flow." )
+        @Option(name: .shortAndLong, help: "Friendly name for the flow.")
         var name: String = "My Flow"
 
         @Option(name: [.customShort("s"), .long], help: "Comma-separated list of step titles.")
         var steps: String = "Plan,Build,Ship"
 
-        @Option(help: "Optional comma-separated notes for each step, matching the order of --steps.")
+        @Option(
+            help: "Optional comma-separated notes for each step, matching the order of --steps.")
         var notes: String = ""
 
         @Option(name: .shortAndLong, help: "Destination path for the flow definition JSON.")
@@ -80,7 +90,8 @@ extension Flow {
         var force = false
 
         mutating func run() throws {
-            let stepTitles = steps
+            let stepTitles =
+                steps
                 .split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .filter { !$0.isEmpty }
@@ -89,12 +100,15 @@ extension Flow {
                 throw ValidationError("Provide at least one step via --steps.")
             }
 
-            let stepNotes = notes
+            let stepNotes =
+                notes
                 .split(separator: ",", omittingEmptySubsequences: false)
                 .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
 
             let flowSteps: [FlowDefinition.Step] = stepTitles.enumerated().map { offset, title in
-                let note = offset < stepNotes.count ? (stepNotes[offset].isEmpty ? nil : stepNotes[offset]) : nil
+                let note =
+                    offset < stepNotes.count
+                    ? (stepNotes[offset].isEmpty ? nil : stepNotes[offset]) : nil
                 return FlowDefinition.Step(index: offset + 1, title: title, notes: note)
             }
 
@@ -105,7 +119,8 @@ extension Flow {
     }
 
     struct Run: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Stream the flow and highlight the next actionable step.")
+        static let configuration = CommandConfiguration(
+            abstract: "Stream the flow and highlight the next actionable step.")
 
         @Option(name: .shortAndLong, help: "Path to the flow definition JSON.")
         var file: String = "flow.json"
@@ -139,7 +154,8 @@ extension Flow {
     }
 
     struct Show: ParsableCommand {
-        static let configuration = CommandConfiguration(abstract: "Display the configured flow without running it.")
+        static let configuration = CommandConfiguration(
+            abstract: "Display the configured flow without running it.")
 
         @Option(name: .shortAndLong, help: "Path to the flow definition JSON.")
         var file: String = "flow.json"
