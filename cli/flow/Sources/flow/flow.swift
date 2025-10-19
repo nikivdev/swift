@@ -1,5 +1,10 @@
 import ArgumentParser
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
 
 @main
 struct Flow: ParsableCommand {
@@ -9,9 +14,61 @@ struct Flow: ParsableCommand {
         discussion:
             "Use `flow init` to scaffold a new flow definition and `flow run` to walk through its steps.",
         version: "1.0.0",
-        subcommands: [Init.self, Run.self, Show.self],
-        defaultSubcommand: Show.self
+        subcommands: [Init.self, Run.self, Show.self]
     )
+
+    private static let paletteOptions: [CommandPalette.Option] = [
+        .init(
+            command: "init",
+            description: Flow.Init.configuration.abstract
+        ),
+        .init(
+            command: "run",
+            description: Flow.Run.configuration.abstract
+        ),
+        .init(
+            command: "show",
+            description: Flow.Show.configuration.abstract
+        )
+    ]
+
+    fileprivate static func resolvedExecutableName() -> String {
+        if let explicit = Flow.configuration.commandName, !explicit.isEmpty {
+            return explicit
+        }
+        guard let raw = CommandLine.arguments.first else {
+            return "flow"
+        }
+        return URL(fileURLWithPath: raw).lastPathComponent
+    }
+
+    static func main() {
+        var arguments = CommandLine.arguments
+
+        if arguments.count <= 1 {
+            do {
+                let paletteArgs = try CommandPalette.selectCommandArguments(
+                    executableName: resolvedExecutableName(),
+                    options: paletteOptions
+                )
+                if paletteArgs.isEmpty {
+                    Flow.exit(withError: CleanExit.helpRequest(Flow.self))
+                }
+                arguments = [arguments[0]] + paletteArgs
+            } catch CommandPaletteError.exitRequested(let code) {
+                Foundation.exit(code)
+            } catch {
+                Flow.exit(withError: error)
+            }
+        }
+
+        do {
+            var command = try Flow.parseAsRoot(arguments)
+            try command.run()
+        } catch {
+            Flow.exit(withError: error)
+        }
+    }
 }
 
 private struct FlowDefinition: Codable {
@@ -189,5 +246,103 @@ private enum FlowPrinter {
         } else {
             print("\(step.index). \(step.title)\n")
         }
+    }
+}
+
+private enum CommandPaletteError: Error {
+    case exitRequested(Int32)
+}
+
+private struct CommandPalette {
+    struct Option {
+        let command: String
+        let description: String
+
+        var arguments: [String] { [command] }
+    }
+
+    static func selectCommandArguments(
+        executableName: String,
+        options: [Option]
+    ) throws -> [String] {
+        guard !options.isEmpty else {
+            return ["--help"]
+        }
+
+        guard isInteractive else {
+            return ["--help"]
+        }
+
+        let process = Process()
+        let selectionURL = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "flow-palette-selection-\(UUID().uuidString)")
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [
+            "fzf",
+            "--height=40%",
+            "--layout=reverse-list",
+            "--border=rounded",
+            "--prompt",
+            "\(executableName)> ",
+            "--info=inline",
+            "--no-multi",
+            "--header",
+            "Select a \(executableName) command (Enter to run, ESC to cancel)",
+            "--bind",
+            "enter:execute-silent(echo {1} > \"$FLOW_FZF_SELECTION_PATH\")+accept"
+        ]
+
+        let inputPipe = Pipe()
+        process.standardInput = inputPipe
+        process.standardOutput = FileHandle.standardOutput
+        process.standardError = FileHandle.standardError
+        var environment = ProcessInfo.processInfo.environment
+        environment["FLOW_FZF_SELECTION_PATH"] = selectionURL.path
+        process.environment = environment
+
+        do {
+            try process.run()
+        } catch {
+            return ["--help"]
+        }
+
+        let writer = inputPipe.fileHandleForWriting
+        for option in options {
+            let sanitizedDescription = option.description.replacingOccurrences(of: "\n", with: " ")
+            let line = "\(option.command)\t\(sanitizedDescription)\n"
+            if let data = line.data(using: .utf8) {
+                writer.write(data)
+            }
+        }
+        writer.closeFile()
+
+        process.waitUntilExit()
+        defer { try? FileManager.default.removeItem(at: selectionURL) }
+
+        switch process.terminationStatus {
+        case 0:
+            guard
+                let selectionData = try? Data(contentsOf: selectionURL),
+                let selectionLine = String(data: selectionData, encoding: .utf8)?
+                    .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines),
+                !selectionLine.isEmpty
+            else {
+                return ["--help"]
+            }
+
+            guard let match = options.first(where: { $0.command == selectionLine })
+            else {
+                return ["--help"]
+            }
+            return match.arguments
+        case 130:
+            throw CommandPaletteError.exitRequested(130)
+        default:
+            return ["--help"]
+        }
+    }
+
+    private static var isInteractive: Bool {
+        return isatty(STDIN_FILENO) != 0 && isatty(STDOUT_FILENO) != 0
     }
 }
