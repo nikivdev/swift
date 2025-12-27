@@ -14,7 +14,7 @@ struct Flow: ParsableCommand {
         discussion:
             "Use `flow init` to scaffold a new flow definition and `flow run` to walk through its steps.",
         version: "1.0.0",
-        subcommands: [Init.self, Run.self, Show.self]
+        subcommands: [Init.self, Run.self, Show.self, Api.self]
     )
 
     private static let paletteOptions: [CommandPalette.Option] = [
@@ -29,6 +29,10 @@ struct Flow: ParsableCommand {
         .init(
             command: "show",
             description: Flow.Show.configuration.abstract
+        ),
+        .init(
+            command: "api",
+            description: Flow.Api.configuration.abstract
         )
     ]
 
@@ -63,7 +67,7 @@ struct Flow: ParsableCommand {
         }
 
         do {
-            var command = try Flow.parseAsRoot(arguments)
+            var command = try Flow.parseAsRoot(Array(arguments.dropFirst()))
             try command.run()
         } catch {
             Flow.exit(withError: error)
@@ -229,6 +233,160 @@ extension Flow {
             }
         }
     }
+
+    struct Api: ParsableCommand {
+        static let configuration = CommandConfiguration(
+            abstract: "List all available Swift APIs.")
+
+        @Flag(name: .shortAndLong, help: "Show detailed information for each API.")
+        var verbose = false
+
+        @Option(name: .shortAndLong, help: "Filter APIs by category (e.g., foundation, swiftui, uikit).")
+        var category: String?
+
+        @Flag(name: .long, help: "Output as JSON.")
+        var json = false
+
+        mutating func run() throws {
+            let apis = SwiftAPIRegistry.allAPIs
+
+            let filtered: [SwiftAPI]
+            if let category = category?.lowercased() {
+                filtered = apis.filter { $0.category.lowercased() == category }
+            } else {
+                filtered = apis
+            }
+
+            if json {
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+                let data = try encoder.encode(filtered)
+                if let jsonString = String(data: data, encoding: .utf8) {
+                    print(jsonString)
+                }
+            } else {
+                if filtered.isEmpty {
+                    print("No APIs found.")
+                    return
+                }
+
+                let grouped = Dictionary(grouping: filtered, by: { $0.category })
+                for (category, categoryAPIs) in grouped.sorted(by: { $0.key < $1.key }) {
+                    print("\n\(category)")
+                    print(String(repeating: "─", count: category.count))
+                    for api in categoryAPIs.sorted(by: { $0.name < $1.name }) {
+                        if verbose {
+                            print("  \(api.name)")
+                            print("    \(api.description)")
+                            if !api.availability.isEmpty {
+                                print("    Availability: \(api.availability)")
+                            }
+                        } else {
+                            print("  \(api.name) - \(api.description)")
+                        }
+                    }
+                }
+                print("\nTotal: \(filtered.count) API(s)")
+            }
+        }
+    }
+}
+
+struct SwiftAPI: Codable {
+    let name: String
+    let description: String
+    let category: String
+    let availability: String
+}
+
+enum SwiftAPIRegistry {
+    static let allAPIs: [SwiftAPI] = [
+        // Foundation
+        SwiftAPI(name: "URLSession", description: "Perform HTTP/HTTPS requests", category: "Foundation", availability: "iOS 7.0+, macOS 10.9+"),
+        SwiftAPI(name: "FileManager", description: "Manage files and directories", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "JSONEncoder", description: "Encode Codable types to JSON", category: "Foundation", availability: "iOS 11.0+, macOS 10.13+"),
+        SwiftAPI(name: "JSONDecoder", description: "Decode JSON to Codable types", category: "Foundation", availability: "iOS 11.0+, macOS 10.13+"),
+        SwiftAPI(name: "UserDefaults", description: "Store user preferences persistently", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "NotificationCenter", description: "Broadcast notifications within the app", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "Timer", description: "Schedule and fire timed events", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "DispatchQueue", description: "Execute tasks asynchronously or synchronously", category: "Foundation", availability: "iOS 4.0+, macOS 10.6+"),
+        SwiftAPI(name: "ProcessInfo", description: "Access process environment and arguments", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "Bundle", description: "Access app resources and metadata", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "DateFormatter", description: "Format and parse dates", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "NumberFormatter", description: "Format and parse numbers", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "Locale", description: "Access locale-specific information", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "Calendar", description: "Perform calendar calculations", category: "Foundation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "UUID", description: "Generate unique identifiers", category: "Foundation", availability: "iOS 6.0+, macOS 10.8+"),
+
+        // Networking
+        SwiftAPI(name: "URLRequest", description: "Configure HTTP request parameters", category: "Networking", availability: "iOS 2.0+, macOS 10.2+"),
+        SwiftAPI(name: "URLResponse", description: "Handle HTTP response metadata", category: "Networking", availability: "iOS 2.0+, macOS 10.2+"),
+        SwiftAPI(name: "URLCache", description: "Cache URL responses", category: "Networking", availability: "iOS 2.0+, macOS 10.2+"),
+        SwiftAPI(name: "URLSessionTask", description: "Manage individual network requests", category: "Networking", availability: "iOS 7.0+, macOS 10.9+"),
+        SwiftAPI(name: "URLSessionConfiguration", description: "Configure session behavior", category: "Networking", availability: "iOS 7.0+, macOS 10.9+"),
+
+        // Concurrency
+        SwiftAPI(name: "Task", description: "Create and manage async tasks", category: "Concurrency", availability: "iOS 15.0+, macOS 12.0+"),
+        SwiftAPI(name: "TaskGroup", description: "Run multiple concurrent tasks", category: "Concurrency", availability: "iOS 15.0+, macOS 12.0+"),
+        SwiftAPI(name: "AsyncSequence", description: "Iterate over async values", category: "Concurrency", availability: "iOS 15.0+, macOS 12.0+"),
+        SwiftAPI(name: "AsyncStream", description: "Bridge callback-based APIs to async/await", category: "Concurrency", availability: "iOS 15.0+, macOS 12.0+"),
+        SwiftAPI(name: "Actor", description: "Protect mutable state with actor isolation", category: "Concurrency", availability: "iOS 15.0+, macOS 12.0+"),
+        SwiftAPI(name: "MainActor", description: "Run code on the main thread", category: "Concurrency", availability: "iOS 15.0+, macOS 12.0+"),
+
+        // SwiftUI
+        SwiftAPI(name: "View", description: "Define UI components", category: "SwiftUI", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "State", description: "Manage local view state", category: "SwiftUI", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "Binding", description: "Create two-way data binding", category: "SwiftUI", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "ObservableObject", description: "Publish changes to subscribers", category: "SwiftUI", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "EnvironmentObject", description: "Share data through the view hierarchy", category: "SwiftUI", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "StateObject", description: "Create and own observable objects", category: "SwiftUI", availability: "iOS 14.0+, macOS 11.0+"),
+        SwiftAPI(name: "Observable", description: "Modern observation with @Observable macro", category: "SwiftUI", availability: "iOS 17.0+, macOS 14.0+"),
+        SwiftAPI(name: "NavigationStack", description: "Manage navigation with value-based routing", category: "SwiftUI", availability: "iOS 16.0+, macOS 13.0+"),
+        SwiftAPI(name: "List", description: "Display scrollable lists", category: "SwiftUI", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "Form", description: "Group controls for data entry", category: "SwiftUI", availability: "iOS 13.0+, macOS 10.15+"),
+
+        // UIKit
+        SwiftAPI(name: "UIViewController", description: "Manage view hierarchy and lifecycle", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UIView", description: "Display and manage visual content", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UITableView", description: "Display data in scrollable rows", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UICollectionView", description: "Display data in customizable layouts", category: "UIKit", availability: "iOS 6.0+"),
+        SwiftAPI(name: "UINavigationController", description: "Manage hierarchical navigation", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UITabBarController", description: "Manage tab-based interfaces", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UIApplication", description: "Manage app lifecycle and state", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UIImage", description: "Load and display images", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UILabel", description: "Display text content", category: "UIKit", availability: "iOS 2.0+"),
+        SwiftAPI(name: "UIButton", description: "Create interactive buttons", category: "UIKit", availability: "iOS 2.0+"),
+
+        // AppKit (macOS)
+        SwiftAPI(name: "NSViewController", description: "Manage view hierarchy on macOS", category: "AppKit", availability: "macOS 10.5+"),
+        SwiftAPI(name: "NSView", description: "Display content on macOS", category: "AppKit", availability: "macOS 10.0+"),
+        SwiftAPI(name: "NSWindow", description: "Manage windows on macOS", category: "AppKit", availability: "macOS 10.0+"),
+        SwiftAPI(name: "NSApplication", description: "Manage macOS app lifecycle", category: "AppKit", availability: "macOS 10.0+"),
+        SwiftAPI(name: "NSTableView", description: "Display tabular data on macOS", category: "AppKit", availability: "macOS 10.0+"),
+
+        // Data Persistence
+        SwiftAPI(name: "CoreData", description: "Object graph and persistence framework", category: "Data", availability: "iOS 3.0+, macOS 10.4+"),
+        SwiftAPI(name: "SwiftData", description: "Modern Swift-native persistence", category: "Data", availability: "iOS 17.0+, macOS 14.0+"),
+        SwiftAPI(name: "Keychain", description: "Secure storage for sensitive data", category: "Data", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "CloudKit", description: "Store data in iCloud", category: "Data", availability: "iOS 8.0+, macOS 10.10+"),
+
+        // System
+        SwiftAPI(name: "Process", description: "Run external processes", category: "System", availability: "macOS 10.0+"),
+        SwiftAPI(name: "Pipe", description: "Communicate between processes", category: "System", availability: "macOS 10.0+"),
+        SwiftAPI(name: "FileHandle", description: "Read/write file descriptors", category: "System", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "CommandLine", description: "Access command-line arguments", category: "System", availability: "Swift 1.0+"),
+
+        // Combine
+        SwiftAPI(name: "Publisher", description: "Emit values over time", category: "Combine", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "Subscriber", description: "Receive and process values", category: "Combine", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "Subject", description: "Manually publish values", category: "Combine", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "PassthroughSubject", description: "Broadcast values to subscribers", category: "Combine", availability: "iOS 13.0+, macOS 10.15+"),
+        SwiftAPI(name: "CurrentValueSubject", description: "Publish current and new values", category: "Combine", availability: "iOS 13.0+, macOS 10.15+"),
+
+        // Observation
+        SwiftAPI(name: "KVO", description: "Key-Value Observing for property changes", category: "Observation", availability: "iOS 2.0+, macOS 10.0+"),
+        SwiftAPI(name: "Observation", description: "Swift-native observation framework", category: "Observation", availability: "iOS 17.0+, macOS 14.0+"),
+    ]
 }
 
 private enum FlowPrinter {

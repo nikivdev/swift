@@ -1,0 +1,42 @@
+version = 1
+name = "swift-docs"
+
+[deps]
+swift = "swift"
+
+[[tasks]]
+name = "build"
+description = "Build release binary"
+command = "swift build -c release"
+shortcuts = ["b"]
+
+[[tasks]]
+name = "run"
+description = "Run swift-docs CLI"
+command = 'swift run swift-docs "$@"'
+shortcuts = ["r"]
+
+[[tasks]]
+name = "deploy"
+description = "Build and install to ~/bin/swift-docs"
+command = """
+set -euo pipefail
+swift build -c release
+bin_dir="$HOME/bin"
+mkdir -p "$bin_dir"
+cp .build/release/swift-docs "$bin_dir/swift-docs"
+chmod 755 "$bin_dir/swift-docs"
+echo "Installed swift-docs to $bin_dir/swift-docs"
+"""
+shortcuts = ["d"]
+
+[[tasks]]
+name = "clean"
+description = "Clean build artifacts"
+command = "swift package clean && rm -rf .build"
+
+[[tasks]]
+name = "test"
+description = "Run Swift tests"
+command = "swift test"
+shortcuts = ["t"]

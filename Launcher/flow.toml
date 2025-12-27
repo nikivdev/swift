@@ -1,0 +1,84 @@
+version = 1
+name = "launcher"
+
+[flow]
+primary_task = "dev"
+
+[deps]
+swift = "swift"
+bun = "bun"
+
+[[tasks]]
+name = "dev"
+description = "Show launcher (CLI)"
+command = '.build/release/launcher-cli "${1:-Search...}"'
+on_cancel = "pkill -9 launcher-cli"
+shortcuts = ["d"]
+
+[[tasks]]
+name = "build"
+description = "Build release dylib and CLI"
+command = "swift build -c release"
+shortcuts = ["b"]
+
+[[tasks]]
+name = "native"
+description = "Build native dylib for Bun FFI"
+command = "make native"
+shortcuts = ["n"]
+
+[[tasks]]
+name = "cli"
+description = "Run via Swift CLI"
+command = '.build/release/launcher-cli "${1:-Search...}"'
+shortcuts = ["c"]
+
+[[tasks]]
+name = "clean"
+description = "Clean build artifacts"
+command = "swift package clean && rm -rf .build"
+
+[[tasks]]
+name = "test"
+description = "Run Swift tests"
+command = "swift test"
+shortcuts = ["t"]
+
+[[tasks]]
+name = "agent"
+description = "Run launcher agent (foreground)"
+command = ".build/release/launcher-agent"
+on_cancel = "pkill -9 launcher-agent"
+shortcuts = ["a"]
+
+[[tasks]]
+name = "install"
+description = "Install launcher agent (runs at login)"
+command = """
+cp com.1focus.launcher-agent.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.1focus.launcher-agent.plist
+echo "Installed. Press Cmd+Shift+Space to show launcher."
+"""
+shortcuts = ["i"]
+
+[[tasks]]
+name = "uninstall"
+description = "Uninstall launcher agent"
+command = """
+launchctl unload ~/Library/LaunchAgents/com.1focus.launcher-agent.plist 2>/dev/null || true
+rm -f ~/Library/LaunchAgents/com.1focus.launcher-agent.plist
+pkill -9 launcher-agent 2>/dev/null || true
+echo "Uninstalled."
+"""
+shortcuts = ["u"]
+
+[[tasks]]
+name = "restart"
+description = "Restart launcher agent"
+command = """
+launchctl unload ~/Library/LaunchAgents/com.1focus.launcher-agent.plist 2>/dev/null || true
+pkill -9 launcher-agent 2>/dev/null || true
+launchctl load ~/Library/LaunchAgents/com.1focus.launcher-agent.plist
+echo "Restarted."
+"""
+shortcuts = ["r"]
