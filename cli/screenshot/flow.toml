@@ -1,0 +1,42 @@
+version = 1
+name = "screenshot"
+
+[flow]
+primary_task = "deploy"
+
+[deps]
+swift = "swift"
+
+[[tasks]]
+name = "run"
+description = "Take a screenshot"
+command = ".build/release/screenshot"
+shortcuts = ["r"]
+
+[[tasks]]
+name = "build"
+description = "Build release"
+command = "swift build -c release"
+shortcuts = ["b"]
+
+[[tasks]]
+name = "deploy"
+description = "Build and install to ~/bin/screenshot"
+command = """
+set -euo pipefail
+bin_dir="$HOME/bin"
+bin_name="screenshot"
+mkdir -p "$bin_dir"
+
+swift build -c release
+cp .build/release/screenshot "$bin_dir/$bin_name"
+chmod 755 "$bin_dir/$bin_name"
+echo "Installed to $bin_dir/$bin_name"
+"""
+shortcuts = ["d"]
+
+[[tasks]]
+name = "clean"
+description = "Clean build artifacts"
+command = "swift package clean && rm -rf .build"
+shortcuts = ["c"]
