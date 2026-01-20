@@ -28,3 +28,15 @@ private
 .npm-cache
 
 .build
+.ai/internal/
+
+# flow
+.ai/internal/
+.ai/web/
+.claude/
+.codex/
+.flox/
+
+.ai/todos/*.bike
+
+.ai/review-log.jsonl

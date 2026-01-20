@@ -1,0 +1,86 @@
+version = 1
+name = "swift"
+
+[flow]
+primary_task = "deploy"
+
+[deps]
+swift = "swift"
+
+[[tasks]]
+name = "flow"
+description = "Run the Swift Flow CLI (passes CLI args through)"
+command = """
+set -euo pipefail
+swift run --package-path "cli/flow" flow -- "$@"
+"""
+shortcuts = ["f"]
+
+[[tasks]]
+name = "dev"
+description = "Run Flow CLI in development mode"
+command = """
+set -euo pipefail
+swift run --package-path "cli/flow" flow -- "$@"
+"""
+shortcuts = ["r"]
+
+[[tasks]]
+name = "build"
+description = "Build the Swift Flow CLI in release mode"
+command = "swift build --package-path cli/flow -c release"
+shortcuts = ["b"]
+
+[[tasks]]
+name = "deploy"
+description = "Build and install Flow CLI to ~/bin/fs with flow alias"
+command = """
+set -euo pipefail
+package_path="cli/flow"
+bin_dir="$HOME/bin"
+bin_name="fs"
+alias_name="flow"
+
+swift build --package-path "$package_path" -c release
+mkdir -p "$bin_dir"
+cp "$package_path/.build/release/flow" "$bin_dir/$bin_name"
+chmod +x "$bin_dir/$bin_name"
+
+if [ -n "$alias_name" ]; then
+  ln -sf "$bin_dir/$bin_name" "$bin_dir/$alias_name"
+fi
+
+case ":${PATH}:" in
+  *:"$bin_dir":*) ;;
+  *)
+    echo "Note: $bin_dir is not currently on PATH."
+    echo "Add it for fish with: fish_add_path $HOME/bin"
+    echo "Or for bash/zsh: export PATH=\"$HOME/bin:\$PATH\""
+    ;;
+esac
+
+echo "Installed to $bin_dir/$bin_name (alias: $alias_name)"
+"""
+shortcuts = ["d"]
+
+[[tasks]]
+name = "setup"
+description = "Ensure Swift toolchain is installed and resolve dependencies"
+command = """
+set -euo pipefail
+if ! command -v swift >/dev/null 2>&1; then
+  echo "Swift toolchain not found in PATH."
+  echo "Install it from https://www.swift.org/download/"
+  exit 1
+fi
+swift --version >/dev/null
+swift package resolve --package-path "cli/flow" >/dev/null
+echo "Setup complete"
+"""
+shortcuts = ["s"]
+
+[[tasks]]
+name = "clean"
+description = "Clean build artifacts"
+command = "swift package clean --package-path cli/flow && rm -rf cli/flow/.build"
+shortcuts = ["c"]

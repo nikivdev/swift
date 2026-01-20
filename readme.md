@@ -1,23 +1,13 @@
 # Swift
 
-## Setup
+## Dev 
 
-Install [task](https://taskfile.dev/docs/installation). Then run `task setup` & follow instructions until it says `✔️ you are setup`.
+With [flow](https://github.com/nikivdev/flow), run `f setup`, then `f` will search through list of tasks.
 
-## Commands
-
-Run `task` to see all possible commands.
-
-## `flow` CLI
-
-`flow` is a CLI as a dump of various commands written in Swift that are useful to me. See [cli/flow](cli/flow) for its code/docs.
-
-Run `task deploy` to install `flow-swift` into PATH. It also puts `fs` command in path (my own personal shorthand, but you can change it).
+There are CLIs here, running `f deploy-<cli>` will compile and put new version of them into your path.
 
 ## Contributing
 
-Any PR to improve is welcome. [codex](https://github.com/openai/codex) & [cursor](https://cursor.com) are nice for dev. Great **working** & **useful** patches are most appreciated (ideally). Issues with bugs or ideas are welcome too.
-
-### 🖤
+[Use AI](https://nikiv.dev/how-i-code) & [flow](https://github.com/nikivdev/flow). All meaningful issues and PRs will be merged in. Thank you.
 
 [![Discord](https://go.nikiv.dev/badge-discord)](https://go.nikiv.dev/discord) [![X](https://go.nikiv.dev/badge-x)](https://x.com/nikivdev) [![nikiv.dev](https://go.nikiv.dev/badge-nikiv)](https://nikiv.dev)
