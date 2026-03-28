@@ -55,7 +55,7 @@ case ":${PATH}:" in
   *)
     echo "Note: $bin_dir is not currently on PATH."
     echo "Add it for fish with: fish_add_path $HOME/bin"
-    echo "Or for bash/zsh: export PATH=\"$HOME/bin:\$PATH\""
+    echo "Or for bash/zsh: export PATH=\"$HOME/bin:$PATH\""
     ;;
 esac
 
